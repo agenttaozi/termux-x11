@@ -197,6 +197,7 @@ public interface InputStrategyInterface {
                     mSingleFinger = false;
                     // fall through
                 case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
                     if (mHeldButton != InputStub.BUTTON_UNDEFINED) {
                         mInjector.sendMouseUp(mHeldButton, false);
                         mHeldButton = InputStub.BUTTON_UNDEFINED;
@@ -273,7 +274,11 @@ public interface InputStrategyInterface {
 
         @Override
         public void onMotionEvent(MotionEvent event) {
-            if (event.getActionMasked() == MotionEvent.ACTION_UP && mHeldButton != InputStub.BUTTON_UNDEFINED) {
+            // ACTION_CANCEL also ends the gesture: the system steals touches that start near the
+            // screen edge (back gesture), so relying on ACTION_UP alone leaves the button stuck down.
+            int action = event.getActionMasked();
+            if ((action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL)
+                    && mHeldButton != InputStub.BUTTON_UNDEFINED) {
                 mInjector.sendMouseUp(mHeldButton, true);
                 mHeldButton = InputStub.BUTTON_UNDEFINED;
             }
