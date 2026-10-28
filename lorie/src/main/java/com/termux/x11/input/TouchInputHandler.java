@@ -306,6 +306,25 @@ public class TouchInputHandler {
         if (ignoreGamepadEvents && (event.isFromSource(InputDevice.SOURCE_GAMEPAD) || event.isFromSource(InputDevice.SOURCE_JOYSTICK)))
             return true;
 
+        // No matter which handler below consumes this gesture, once it is over nothing may stay
+        // pressed: a multi-finger gesture can be turned into ACTION_CANCEL by the system when it
+        // starts near the screen edge (back gesture), and a held drag then has no matching release.
+        // Releasing a button that is not down is a no-op in X, so this is always safe to do.
+        final int gestureAction = event.getActionMasked();
+        if (gestureAction == MotionEvent.ACTION_DOWN) {
+            Log.i("TIH_dbg", "DOWN src=0x" + Integer.toHexString(event.getSource())
+                    + " tool=" + event.getToolType(event.getActionIndex())
+                    + " ptrs=" + event.getPointerCount()
+                    + " touchpadHandler=" + (mTouchpadHandler != null));
+        } else if (gestureAction == MotionEvent.ACTION_UP || gestureAction == MotionEvent.ACTION_CANCEL) {
+            Log.i("TIH_dbg", "END action=" + gestureAction
+                    + " src=0x" + Integer.toHexString(event.getSource())
+                    + " ptrs=" + event.getPointerCount());
+            mInjector.sendMouseUp(InputStub.BUTTON_LEFT, true);
+            mInjector.sendMouseUp(InputStub.BUTTON_MIDDLE, true);
+            mInjector.sendMouseUp(InputStub.BUTTON_RIGHT, true);
+        }
+
         if (event.getDeviceId() >= 0) {
             mInjector.releaseStuckModifiers(event.getMetaState());
             mInjector.syncLockKeysState(event.getMetaState());
@@ -392,23 +411,6 @@ public class TouchInputHandler {
 
                 case MotionEvent.ACTION_POINTER_DOWN:
                     mTotalMotionY = 0;
-                    break;
-
-                case MotionEvent.ACTION_POINTER_UP:
-                    Log.i("TIH_dbg", "POINTER_UP ptrs=" + event.getPointerCount());
-                    break;
-
-                case MotionEvent.ACTION_UP:
-                case MotionEvent.ACTION_CANCEL:
-                    // The gesture is over. Whatever pressed a mouse button (tap-drag, long press,
-                    // a multi-finger gesture the system cancelled), nothing may stay held:
-                    // releasing a button that is not down is a no-op in X.
-                    Log.i("TIH_dbg", "END action=" + event.getActionMasked()
-                            + " ptrs=" + event.getPointerCount()
-                            + " src=0x" + Integer.toHexString(event.getSource()));
-                    mInjector.sendMouseUp(InputStub.BUTTON_LEFT, true);
-                    mInjector.sendMouseUp(InputStub.BUTTON_MIDDLE, true);
-                    mInjector.sendMouseUp(InputStub.BUTTON_RIGHT, true);
                     break;
 
                 default:
