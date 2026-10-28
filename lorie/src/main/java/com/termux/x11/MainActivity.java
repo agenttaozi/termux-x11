@@ -958,7 +958,26 @@ public class MainActivity extends AppCompatActivity {
     private int ekbarContentInset = 0;
     private int imeHeight = 0;
 
+    // Space Android reserves for system gestures / display cutout. The X desktop is kept out of
+    // it so pointer and rendered pixels stay aligned 1:1 with the area the user can actually reach.
+    private int sysInsetLeft = 0, sysInsetTop = 0, sysInsetRight = 0, sysInsetBottom = 0;
+
+    private void refreshSystemInsets() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R)
+            return;
+        WindowInsets wi = getWindow().getDecorView().getRootWindowInsets();
+        if (wi == null)
+            return;
+        android.graphics.Insets i = wi.getInsets(
+                WindowInsets.Type.systemGestures() | WindowInsets.Type.displayCutout());
+        sysInsetLeft = i.left;
+        sysInsetTop = i.top;
+        sysInsetRight = i.right;
+        sysInsetBottom = i.bottom;
+    }
+
     private void applyContentInsets() {
+        refreshSystemInsets();
         int pos = getPagerPosition();
         // Only a bar at the bottom has to step aside for the keyboard.
         int bottomMargin = pos == PAGER_POSITION_BOTTOM ? imeHeight : 0;
@@ -968,10 +987,11 @@ public class MainActivity extends AppCompatActivity {
         boolean barReservesKeyboardSpace = pos == PAGER_POSITION_BOTTOM && ekbarContentInset > 0;
         int imeContentInset = barReservesKeyboardSpace ? bottomMargin : (prefs.Reseed.get() ? imeHeight : 0);
 
-        getLorieView().setContentInsets(pos == PAGER_POSITION_LEFT ? ekbarContentInset : 0,
-                pos == PAGER_POSITION_TOP ? ekbarContentInset : 0,
-                pos == PAGER_POSITION_RIGHT ? ekbarContentInset : 0,
-                imeContentInset + (pos == PAGER_POSITION_BOTTOM ? ekbarContentInset : 0));
+        getLorieView().setContentInsets(
+                sysInsetLeft + (pos == PAGER_POSITION_LEFT ? ekbarContentInset : 0),
+                sysInsetTop + (pos == PAGER_POSITION_TOP ? ekbarContentInset : 0),
+                sysInsetRight + (pos == PAGER_POSITION_RIGHT ? ekbarContentInset : 0),
+                sysInsetBottom + imeContentInset + (pos == PAGER_POSITION_BOTTOM ? ekbarContentInset : 0));
         getLorieView().setObscuredBottom(imeHeight - imeContentInset);
 
         ViewPager pager = getTerminalToolbarViewPager();
