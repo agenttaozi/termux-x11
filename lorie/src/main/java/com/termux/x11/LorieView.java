@@ -491,26 +491,6 @@ public class LorieView extends SurfaceView implements InputStub {
         updateViewport();
     }
 
-    // Keep the X desktop out of the areas Android reserves for system gestures (edge back swipe)
-    // and the display cutout. The viewport, the X screen size and the input transform are all
-    // derived from availableRect, so the desktop stays 1:1 with the pixels it is drawn on.
-    private void applySystemGestureInsets() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R)
-            return;
-        WindowInsets wi = getRootWindowInsets();
-        if (wi == null)
-            return;
-        int types = WindowInsets.Type.systemGestures() | WindowInsets.Type.displayCutout();
-        android.graphics.Insets i = wi.getInsets(types);
-        setContentInsets(i.left, i.top, i.right, i.bottom);
-    }
-
-    @Override
-    public WindowInsets onApplyWindowInsets(WindowInsets insets) {
-        applySystemGestureInsets();
-        return super.onApplyWindowInsets(insets);
-    }
-
     private void updateViewport() {
         Prefs prefs = activity.prefs;
 
@@ -564,7 +544,6 @@ public class LorieView extends SurfaceView implements InputStub {
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-        applySystemGestureInsets();
         updateViewport();
     }
 
